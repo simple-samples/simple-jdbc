@@ -16,6 +16,23 @@ public class AssociateRepo implements DataSourceCRUD<AssociateModel>{
 
         try {
             String sql = "INSERT INTO associates (associate_id, first_name, last_name, age) VALUES (?,?,?,?)";
+
+            String partOne = "INSERT INTO ";
+            //how to get table name? Reflection. Reflect on the class and name the table after it.
+            // Or, you could have users of your library add your custom annotations in order to tell you
+            //what the table name should be.
+            String tableName = "";//so figure this part out.
+            String partTwo = " (";
+            String columnList = "";
+            //Again, we need to reflect here. We want to get and iterate over all fields, and we want to create
+            // a column name. We can also have the user use custom annotations here to specify the name.
+            //We need to create a comma separated list of column names. Maybe keep track of the number of columns for later
+            String partThree = ") VALUES (";
+            String values = "?,?,?,?";
+            String partFour = ")";
+
+
+
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setInt(1, model.getId());
             pstmt.setString(2, model.getFirstName());
@@ -23,6 +40,11 @@ public class AssociateRepo implements DataSourceCRUD<AssociateModel>{
             pstmt.setInt(4, model.getAge());
 
             pstmt.executeUpdate();
+            ResultSet rs =  pstmt.getGeneratedKeys();
+            if(rs.next()) {
+                rs.getInt(1);
+            }
+
 
 
         } catch (SQLException e) {

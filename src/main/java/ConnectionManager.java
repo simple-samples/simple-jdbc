@@ -1,6 +1,7 @@
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -38,12 +39,25 @@ public class ConnectionManager {
         //we're going to handle them here.
         try {
 
-            //Properties is an object that holds key/value pairs read from a file
+            /*
+            This is the first way we did it, but this doesn't work with .war files.
+            Properties is an object that holds key/value pairs read from a file
+            the file reader gets the data out of the file, and when we call props.load it loads that data
+            into the properties object
+
             Properties props = new Properties();
-            //the file reader gets the data out of the file, and when we call props.load it loads that data
-            //into the properties object
-            FileReader fr = new FileReader("src/main/resources/jdbc.properties");
-            props.load(fr);
+            FileReader reader = new FileReader("src/main/resources/jdbc.properties");
+            props.load(reader);
+             */
+
+
+
+            // The new and more correct way to load a resource file:
+            Properties props = new Properties();
+            ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            InputStream input = loader.getResourceAsStream("jdbc.properties");
+            props.load(input);
+
 
 
             //next we concatenate the parts of our string so that it is complete and fully qualified
