@@ -2,13 +2,6 @@
 This is a simple lab you can follow to build a basic boilerplate JDBC project. When you complete this lab you will have a database
 with one or more tables and a Java application with CRUD functionality that can access those tables. Start by launching DBeaver, and creating a new maven project in IntelliJ.
 
-
-
-build DAO interface & classes
-preform CRUD with DAO
-
-
-
 ## Create Tables
 First we want to create tables. To do this we will connect DBeaver to our database and write the SQL statements.  
 
@@ -131,7 +124,7 @@ Now we just need to write the connect() method to do most of the work. First let
 	}
 ```
 
-We will now go over each of those 3 steps in the code stub above. First we need to pull the information from the jdbc.properties file we created earlier. If the file is correctly located in the maven sources root directory, the file will get packaged into the application on the classpath. Then we can access it like this:
+We will now go over each of those 3 steps in the code stub above. First we need to pull the information from the `jdbc.properties` file we created earlier. If the file is correctly located in the maven sources root directory, the file will get packaged into the application on the classpath. Then we can access it like this:
 
 ```Java
 		//Step 1: Pull the properties
@@ -150,40 +143,41 @@ jdbc:postgresql://HOSTNAME:PORT/DATABASENAME?user=USERNAME&password=PASSWORD&cur
 
 So, if we used the example data above the completed string would look like this:
 ```
-jdbc:postgresql://training-kyle-p.cvtq9j4axrge.us-east-1.rds.amazonaws.com:5432/Revagenda?user=postgres&password=password123&curentSchema=PUBLIC
+jdbc:postgresql://training-kyle-p.cvtq9j4axrge.us-east-1.rds.amazonaws.com:5432/Revagenda?user=postgres&password=password123&curentSchema=public
 ```
 
 We will get the values out of our `props` object by repeatedly calling the `getProperty()` method, each time with the key as the parameter to retrieve the associates value.
 
 ```Java
-			//Step 2: create the connection string
-            String host = props.getProperty("host");
-            String port = props.getProperty("port");
-            String dbname = props.getProperty("dbname");
-            String username = props.getProperty("username");
-            String password = props.getProperty("password");
-            String schema = props.getProperty("schema");
-            String driver = props.getProperty("driver");
+	//Step 2: create the connection string
+	String host = props.getProperty("host");
+	String port = props.getProperty("port");
+	String dbname = props.getProperty("dbname");
+	String username = props.getProperty("username");
+	String password = props.getProperty("password");
+	String schema = props.getProperty("schema");
+	String driver = props.getProperty("driver");
 
-			//then concatinate these tokens into a completed string:
-            StringBuilder builder = new StringBuilder("jdbc:postgresql://");
-            builder.append(host);
-            builder.append(":");
-            builder.append(port);
-            builder.append("/");
-            builder.append(dbname);
-            builder.append("?user=");
-            builder.append(username);
-            builder.append("&password=");
-            builder.append(password);
-            builder.append("&currentSchema=");
-            builder.append(schema);
+	//then concatinate these tokens into a completed string:
+	StringBuilder builder = new
+	StringBuilder("jdbc:postgresql://");
+	builder.append(host);
+	builder.append(":");
+	builder.append(port);
+	builder.append("/");
+	builder.append(dbname);
+	builder.append("?user=");
+	builder.append(username);
+	builder.append("&password=");
+	builder.append(password);
+	builder.append("&currentSchema=");
+	builder.append(schema);
 ```
-We first declare a `StringBuilder` and then use it to concatinate all of the string parts together. Now we are finally ready to establish our connection. Before we do that, we should look at one other little thing. Sometimes, for some reason, the JVM will not properly load the driver class needed to connect. It should be loaded into memory for us, but there is some sort of bug. So sometimes we have to use a hack to force the JVM to load the necessary code. We can simply do the following:
+We declare a `StringBuilder` and then use it to concatinate all of the string parts together. Now we are finally ready to establish our connection. Before we do that, we should look at one other little thing. Sometimes, for some reason, the JVM will not properly load the driver class needed to connect. It should be loaded into memory for us, sometimes it doesn't. So sometimes we have to use a hack to force the JVM to load the necessary code. We can simply do the following:
 ```Java
 Class.forName(driver);
 ```
-`driver` is a string pulled from the `jdbc.properties` file which has the fully qualified name of the class that the JVM needs to load. We actually discard the result of this method call, we don't actually need it. This line would return the class to us so we could reflect on it, but we don't have to. Once the JVM has loaded it into memory (which happens implicitly because of this method call) we don't care about the rest.  
+`driver` is a string pulled from the `jdbc.properties` file which has the fully qualified name of the class that the JVM needs to load. We actually discard the result of this method call, we don't need it. This line would return the class to us so we could reflect on it, but we don't have to. Once the JVM has loaded it into memory (which happens implicitly because of this method call) we don't care about the rest.  
   
 So, finally, here's the code for step 3:
 ```Java
@@ -242,31 +236,31 @@ Each of these CRUD methods are going to work very similarly. We will create a SQ
 
 ```Java
 	@Override
-    public void create(User user) {
-        try {
+	public void create(User user) {
+		try {
 			//Step 1: write the statement
-			
+
 			//Step 2: Parameterize the statement
-			
+
 			//Step 3: Execute the statement
-			
+
 			//Step 4: Marshal the results if necessary
-		
-		
+			
+			
 		} catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
+			e.printStackTrace();
+		}
+	}
 ```
 
-The first thing we need to do is write our SQL statement. Start by writing in a string the exact SQL code needed to add a new row into the database. Refer to the insert statement near the beginning of this lab.
+The first thing we need to do here is write our SQL statement. Start by writing in a string the exact SQL code needed to add a new row into the database. Refer to the insert statement near the beginning of this lab.
 
 ```Java
-	String sql = "INSERT INTO users (username, email, password) VALUES ('trainer', 'trainer@Revature.com', 'P4ssW0rd1!')";
+String sql = "INSERT INTO users (username, email, password) VALUES ('trainer', 'trainer@Revature.com', 'P4ssW0rd1!')";
 ```
 Now we want to remove those values and add in placeholders. In the next step we will be parameterizing those placeholders. Java JDBC uses the question mark `?` character to represent a variable.
 ```Java
-	String sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+String sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
 ```
 Our string is ready to go. We want to turn this into a `PreparedStatement` which will allow us to safely parameterize those variables. The complete code for Step 1:
 
@@ -297,9 +291,9 @@ The next thing to do is execute our statement. We can choose one of several meth
 	//Step 3: Execute the statement
 	pstmt.executeUpdate();
 ```
-Note that we don;t do anything with the int returned from this method call. We could if we cared about the affected row count.  
+Note that we don't do anything with the `int` returned from this method call. We could if we cared about the affected row count.  
   
-The `create()` method is now complete. We don't need to worry about marshaling a result set here. Next we will implement the `update()` and `delete()` methods. Because these are all so similar, here are the completed methods:
+The `create()` method is now complete. We don't need to worry about marshaling a result set here. Next we will implement the `update()` and `delete()` methods. Because these are all so similar to create, here are the completed methods:
 
 ```Java
     @Override
@@ -337,3 +331,65 @@ The `create()` method is now complete. We don't need to worry about marshaling a
 
     }
 ```
+Lastly we will implement the `read()` and `readAll()` methods. These are also similar to the last few, with the added step of marshaling the results. So here is the completed `read()` method.
+
+```Java
+@Override
+public User read(int id) {
+	User user = new User();
+	try {
+		String sql = "SELECT * FROM users WHERE user_id = ?";
+		PreparedStatement pstmt = connection.prepareStatement(sql);
+		pstmt.setInt(1, id);
+		ResultSet results = pstmt.executeQuery();
+
+
+		//Marshal the results
+		if(results.next()) {
+			user.setUserId(results.getInt("user_id"));
+			user.setUserName(results.getString("user_name"));
+			user.setEmail(results.getString("email"));
+			user.setPassword(results.getString("password"));
+		}
+
+	} catch (SQLException e) {
+		e.printStackTrace();
+	}
+	
+	return user;
+}
+```
+Take a look at the extra code here under `//Marshal the results`. A ResultSet can be thought of like a database table, or an excel spreadsheet. There are several rows, depending on how many results we get from our query. There are several columns, matching the columns of the table we queried. We are going to be looping through the set, working with one row at a time. In this case there is only one row, as we queried the database for one unique user. Next in the `readAll()` method we will loop through several results:
+
+```Java
+@Override
+    public List<User> readAll() {
+        List<User> userList = new LinkedList<>();
+        try {
+			String sql = "SELECT * FROM users";
+			PreparedStatement pstmt = connection.prepareStatement(sql);
+			ResultSet results = pstmt.executeQuery();
+			
+			
+			while(results.next()) {
+				User user = new User();
+				user.setUserId(results.getInt("user_id"));
+				user.setUserName(results.getString("user_name"));
+				user.setEmail(results.getString("email"));
+				user.setPassword(results.getString("password"));
+				userList.add(user);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return userList;
+	}
+```
+Here we looped through the results in a `while` loop. Note how both the if statement above and the while loop here use the `results.next()` method. This is how we iterate through the set. This is similar to the `Iterable` interface which has two methods `hasNext()` and `next()`. The `ResultSet` `next()` is a combination of both. It advances the cursor if possible, or returns false if there is no next row. Remember that the ResultSet starts with the cursor NOT POINTING to the first item in the list. `next()` must be called once to advance the cursor to the first item in the list. Hence why we call it inside the if statement - if there is a result, use it, else skip over the block.  
+  
+The last thing to note is what we do with each row in the set. We pull out the value from the database by calling the `ResultSet` object's get methods. Just like the `PreparedStatement` from earlier which has several set methods for different types, this has several get methods, one for each type. These methods take in a string parameter which is the column name from the database table.
+  
+## TaskDAO Implementation
+After studying the code above you should be able to produce implementations for the TaskDAO class. It will be very similar to the UserDAO we just completed. Take a look at the table definition at the top of this document, keep that in mind as you write the SQL scripts. Remember, each CRUD method will preform almost the same exact steps: Write the SQL string, parameterize it, execute it, and if necessary marshal the results.
