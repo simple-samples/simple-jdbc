@@ -4,8 +4,6 @@ with one or more tables and a Java application with CRUD functionality that can 
 
 
 
-pull properties
-establish Connection
 build DAO interface & classes
 preform CRUD with DAO
 
@@ -140,7 +138,7 @@ We will now go over each of those 3 steps in the code stub above. First we need 
 		Properties props = new Properties();
 		ClassLoader loader = Thread.currentThread().getContextClassLoader();
 		InputStream input = loader.getResourceAsStream("jdbc.properties");
-        props.load(input);
+		props.load(input);
 ```
 
 We set up a `Properties` object called `props` to hold the info from our file. Then we get a `ClassLoader` called `loader` and use that to get an `InputStream` called `input` which is a buffer containing the contents of the `jdbc.properties` file. Finally we use our `props` object to call `load(input)` which parses the key/value pairs in the file. Now we can access those values in the next steps from our `props` object.  
@@ -153,4 +151,189 @@ jdbc:postgresql://HOSTNAME:PORT/DATABASENAME?user=USERNAME&password=PASSWORD&cur
 So, if we used the example data above the completed string would look like this:
 ```
 jdbc:postgresql://training-kyle-p.cvtq9j4axrge.us-east-1.rds.amazonaws.com:5432/Revagenda?user=postgres&password=password123&curentSchema=PUBLIC
+```
+
+We will get the values out of our `props` object by repeatedly calling the `getProperty()` method, each time with the key as the parameter to retrieve the associates value.
+
+```Java
+			//Step 2: create the connection string
+            String host = props.getProperty("host");
+            String port = props.getProperty("port");
+            String dbname = props.getProperty("dbname");
+            String username = props.getProperty("username");
+            String password = props.getProperty("password");
+            String schema = props.getProperty("schema");
+            String driver = props.getProperty("driver");
+
+			//then concatinate these tokens into a completed string:
+            StringBuilder builder = new StringBuilder("jdbc:postgresql://");
+            builder.append(host);
+            builder.append(":");
+            builder.append(port);
+            builder.append("/");
+            builder.append(dbname);
+            builder.append("?user=");
+            builder.append(username);
+            builder.append("&password=");
+            builder.append(password);
+            builder.append("&currentSchema=");
+            builder.append(schema);
+```
+We first declare a `StringBuilder` and then use it to concatinate all of the string parts together. Now we are finally ready to establish our connection. Before we do that, we should look at one other little thing. Sometimes, for some reason, the JVM will not properly load the driver class needed to connect. It should be loaded into memory for us, but there is some sort of bug. So sometimes we have to use a hack to force the JVM to load the necessary code. We can simply do the following:
+```Java
+Class.forName(driver);
+```
+`driver` is a string pulled from the `jdbc.properties` file which has the fully qualified name of the class that the JVM needs to load. We actually discard the result of this method call, we don't actually need it. This line would return the class to us so we could reflect on it, but we don't have to. Once the JVM has loaded it into memory (which happens implicitly because of this method call) we don't care about the rest.  
+  
+So, finally, here's the code for step 3:
+```Java
+	Class.forName(driver);
+	connection = DriverManager.getConnection(builder.toString());
+```
+
+
+That's the whole connection manager class. Now we can call the static method `ConnectionManager.getConnection()` which will return a working connection object reference. We set this up as a singleton, so there should only ever be one object in existence. 
+
+## Data Access Objects
+Next we will design an interface that our DAOs will implement. Recall that an interface in Java sets forth a promise that any class which implements the interface will implement it's abstract methods.  
+  
+Create a new interface called DataSourceCRUD. Any class which implements this interface should be capable of preforming CRUD (create, read, update, delete) functions. This interface will be generic, and the type will be resolved by each implementing class.
+
+```Java
+public interface DataSourceCRUD<T> {
+    void create(T t);
+    T read(int id);
+    List<T> readAll();
+    void update(T t);
+    void delete(int id);
+}
+```
+Now we will create two concrete classes which implement this interface. Each will need to provide its own implementations for the 5 methods above. Create a `UserDAO` and a `TaskDAO` class.
+
+```Java
+//UserDAO
+public class UserDAO implements DataSourceCRUD<User> {
+
+    Connection connection;
+
+    public UserDAO(Connection connection) {
+        this.connection = connection;
+    }
+}
+```
+
+```Java
+//TaskDAO
+public class TaskDAO implements DataSourceCRUD<User> {
+
+    Connection connection;
+
+    public TaskDAO(Connection connection) {
+        this.connection = connection;
+    }
+}
+```
+
+You may have noticed IntelliJ giving you errors about the classes we just made. This is because it insists that you implement those methods defined in the interface. So, go ahead and let IntelliJ stub out those methods for you by hovering over the error and clicking "implement methods...".  
+  
+Now you should have 5 override methods which all lack a concrete implementation. We are going to write the implementations for the UserDAO first. Let's start with `public void create(User user);`  
+  
+Each of these CRUD methods are going to work very similarly. We will create a SQL string, parameterize it, execute it, and if necessary marshal the results. Let's start by stubbing out the method:
+
+```Java
+	@Override
+    public void create(User user) {
+        try {
+			//Step 1: write the statement
+			
+			//Step 2: Parameterize the statement
+			
+			//Step 3: Execute the statement
+			
+			//Step 4: Marshal the results if necessary
+		
+		
+		} catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+```
+
+The first thing we need to do is write our SQL statement. Start by writing in a string the exact SQL code needed to add a new row into the database. Refer to the insert statement near the beginning of this lab.
+
+```Java
+	String sql = "INSERT INTO users (username, email, password) VALUES ('trainer', 'trainer@Revature.com', 'P4ssW0rd1!')";
+```
+Now we want to remove those values and add in placeholders. In the next step we will be parameterizing those placeholders. Java JDBC uses the question mark `?` character to represent a variable.
+```Java
+	String sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+```
+Our string is ready to go. We want to turn this into a `PreparedStatement` which will allow us to safely parameterize those variables. The complete code for Step 1:
+
+```Java
+	//Step 1: write the statement
+	String sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+	PreparedStatement pstmt = connection.prepareStatement(sql);
+```
+We take that SQL string and hand it off to the `connection.prepareStatement()` method. This string is used to make the statement. Next we need to parameterize those variables. This is the process of setting the values we want to insert. Parameterizing them in this way gives you protection against [SQL Injection](https://xkcd.com/327/) and the variables not being hard coded allows this statement to be re-used with any User information.  
+  
+To parameterize the `PreparedStatement` we use it's set methods. There are several, each for a different data type. We need to call the appropriate method: `setString()` for Strings,`setInteger()` for Integers, and so on. Each of these methods takes 2 parameters, the index and the value. The index represents which `?` is being parameterized, and the value is what is concatinated into the string. Keep in mind these indices start a 1, not at 0. They refer to the `?`s from left to right, so for our statement above we will want to set parameter 1 to the username, 2 to the email, and 3 to the password.
+
+```Java
+	//Step 2: Parameterize the statement
+	pstmt.setString(1, user.getUserName());
+	pstmt.setString(2, user.getEmail());
+	pstmt.setString(3, user.getPassword());
+```
+Note that we are pulling the data out of the user object that get passed to this method in the parameter list.  
+  
+The next thing to do is execute our statement. We can choose one of several methods on the `PreparedStatement` object: `execute()`, `executeUpdate()`, and `executeQuery()`.  
+  
+ - `execute()` returns a bool indicating success or failure.
+ - `executeUpdate()` returns an int indicating how many rows were affected.
+ - `executeQuery()` returns a ResultSet object containing the results of the query.
+
+```Java
+	//Step 3: Execute the statement
+	pstmt.executeUpdate();
+```
+Note that we don;t do anything with the int returned from this method call. We could if we cared about the affected row count.  
+  
+The `create()` method is now complete. We don't need to worry about marshaling a result set here. Next we will implement the `update()` and `delete()` methods. Because these are all so similar, here are the completed methods:
+
+```Java
+    @Override
+    public void update(User user) {
+
+        try {
+            String sql = "UPDATE users SET user_name = ?, email = ?, password = ?, WHERE user_id = ?";
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, user.getUserName());
+            pstmt.setString(2, user.getEmail());
+            pstmt.setString(3, user.getPassword());
+            pstmt.setInt(4, user.getUserId());
+            pstmt.executeUpdate();
+
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+```
+
+```Java
+    @Override
+    public void delete(int id) {
+        try {
+            String sql = "DELETE FROM users WHERE user_id = ?";
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, id);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+    }
 ```
