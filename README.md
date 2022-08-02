@@ -1,9 +1,9 @@
 # simple-jdbc
 This is a simple lab you can follow to build a basic boilerplate JDBC project. When you complete this lab you will have a database
-with one or more tables and a Java application with CRUD functionality that can access those tables.
+with one or more tables and a Java application with CRUD functionality that can access those tables. Start by launching DBeaver, and creating a new maven project in IntelliJ.
 
 
-start with dbeaver - connect & create tables
+
 pull properties
 establish Connection
 build DAO interface & classes
@@ -21,11 +21,11 @@ Once connected to the database (if you expand the database in the Database Navig
 Use the following SQL statements to create two tables:
 ```SQL
 CREATE TABLE users (
-	user_id SERIAL, /*This is the self-incrementing data type in postgresql. Some other SQL flavors will implement this functionality differently*/
+	user_id SERIAL,
 	username VARCHAR(200) NOT NULL,
 	email VARCHAR(200) NOT NULL,
 	"password" VARCHAR(200) NOT NULL,
-	CONSTRAINT users_pk PRIMARY KEY (user_id) /*We could also simply put "PRIMARY KEY" on the user_id definition*/
+	CONSTRAINT users_pk PRIMARY KEY (user_id)
 );
 ```
 
@@ -71,3 +71,86 @@ DELETE FROM users
 WHERE user_id = 999;
 ```
 
+## Properties File
+Next we need to save the credentials to access the database with our Java application, but we also want to make sure we don't publish these credentials to our git repository where someone might find them. To do this we are going to pull the info from a file that will be ignored by git. Start by adding the following line to your .gitignore:
+```
+*.properties
+```
+This tells git to ignore all files which end with ".properties". We are going to create a properties file and save our connection info there. Create a new file in the resources root directory (src/main/resources/), name it `jdbc.properties`. In that file add your connection info in the form of key value pairs like the example below:
+```
+# Connection info for Kyle's training db
+host=training-kyle-p.cvtq9j4axrge.us-east-1.rds.amazonaws.com
+port=5432
+driver=org.postgresql.Driver
+username=postgres
+password=password123
+dbname=Revagenda
+schema=public
+```
+
+Note the format of this file. This is a series of key/value pairs. Each line has one pair, like this: `key=value`. 
+
+
+## Datbase Connection
+The first thing we need to do is establish a connection to our database. Now that we have the properties file ready to go, we will be picking up the data inside and using it to build a connection string. For PostgreSQL the connection string will look like this:
+```
+jdbc:postgresql://HOSTNAME:PORT/DATABASENAME?user=USERNAME&password=PASSWORD&curentSchema=SCHEMA
+```
+Note that each of the tokens in caps are values we want to pull from the `jdbc.properties` file.  
+  
+Start by creating a new class, the ConnectionManager. Give it a method to establish a connection. You can build this in a number of ways, this lab will suggest building a static Connection reference, a private constructor, and a public static method which will mantain exactly one Conncetion object (see: Singleton Design Pattern).
+
+```Java
+public class ConnectionManager {
+	private static Connection connection;
+  
+	private ConnectionManager() {
+  
+	}
+  
+	public static Connection getConnection() {
+        if(connection == null) {
+            connect();
+        }
+        return connection;
+    }
+}
+```
+
+Now we just need to write the connect() method to do most of the work. First let's stub out this method, and then we will add in the functionality:
+
+```Java
+    private static void connect() {
+	try {
+		//Step 1: Pull the properties
+		
+		//Step 2: create the connection string
+		
+		//Step 3: connect
+	
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+```
+
+We will now go over each of those 3 steps in the code stub above. First we need to pull the information from the jdbc.properties file we created earlier. If the file is correctly located in the maven sources root directory, the file will get packaged into the application on the classpath. Then we can access it like this:
+
+```Java
+		//Step 1: Pull the properties
+		Properties props = new Properties();
+		ClassLoader loader = Thread.currentThread().getContextClassLoader();
+		InputStream input = loader.getResourceAsStream("jdbc.properties");
+        props.load(input);
+```
+
+We set up a `Properties` object called `props` to hold the info from our file. Then we get a `ClassLoader` called `loader` and use that to get an `InputStream` called `input` which is a buffer containing the contents of the `jdbc.properties` file. Finally we use our `props` object to call `load(input)` which parses the key/value pairs in the file. Now we can access those values in the next steps from our `props` object.  
+  
+Next we want to use these properties to assemble the connection string. We will be hard coding parts of the string, and filling in the variables. Remember we will want the string that looks like this:
+```
+jdbc:postgresql://HOSTNAME:PORT/DATABASENAME?user=USERNAME&password=PASSWORD&curentSchema=SCHEMA
+```
+
+So, if we used the example data above the completed string would look like this:
+```
+jdbc:postgresql://training-kyle-p.cvtq9j4axrge.us-east-1.rds.amazonaws.com:5432/Revagenda?user=postgres&password=password123&curentSchema=PUBLIC
+```
