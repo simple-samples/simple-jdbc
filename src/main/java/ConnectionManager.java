@@ -52,6 +52,7 @@ public class ConnectionManager {
 
 
 
+
             // The new and more correct way to load a resource file:
             Properties props = new Properties();
             ClassLoader loader = Thread.currentThread().getContextClassLoader();
