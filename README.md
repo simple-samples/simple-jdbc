@@ -2,6 +2,19 @@
 This is a simple lab you can follow to build a basic boilerplate JDBC project. When you complete this lab you will have a database
 with one or more tables and a Java application with CRUD functionality that can access those tables. Start by launching DBeaver, and creating a new maven project in IntelliJ.
 
+## Project Setup & PostgreSQL Dependency
+Create a new maven project and add the following dependency to your POM.xml:
+
+```XML
+<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.4.0</version>
+</dependency>
+```
+
+
 ## Create Tables
 First we want to create tables. To do this we will connect DBeaver to our database and write the SQL statements.  
 
